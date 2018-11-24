@@ -15,8 +15,9 @@ Collect light pollution data by driving around in your car
 - Share your GPS from your phone using an app that can broadcast NMEA protocol
 - Connect your laptop to the same WIFI as your phone (setup a hotspot)
 - Plug in your SQM USB.
-- Run the app specifying your phone's IP and USB device. Example `./survey.py  -i 192.168.43.1 -s /dev/ttyUSB0` Data will be printed to the console and saved to a file called sqm.csv
-- Drive around, data is logged every 5 seconds
+- Run the app specifying your phone's IP and USB device. Example `./survey.py  -i 192.168.43.1 -s /dev/ttyUSB0` Data will be printed to the console and saved to a file called sqm.csv on mouse click
+- Drive around, data is logged every time the left mouse button is clicked.
+- Dont click and drive at the same time. Find a helpful assistant to click when driving in open areas with no tree cover or traffic
 
 Data contains timestamps in 2 formats, GPS coordinates, altitude and SQM readings
 
