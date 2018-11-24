@@ -1,2 +1,3 @@
 serial==0.0.70
 pynmea2==1.12.0
+PyUserInput==0.1.11

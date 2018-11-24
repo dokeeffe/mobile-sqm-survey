@@ -11,6 +11,7 @@ import pynmea2
 import socket
 import threading
 from datetime import datetime
+from pymouse import PyMouseEvent
 
 log = logging.getLogger()
 logging.basicConfig(format='%(asctime)s ,%(message)s', level=logging.INFO, filename='sqm.csv')
@@ -69,7 +70,7 @@ class GpsPoller(threading.Thread):
     def run(self):
         lat = 0
         lon = 0
-        orientation = 0
+        altitude = 0
         gotUpdate = False
 
         reader = pynmea2.NMEAStreamReader()
@@ -86,10 +87,7 @@ class GpsPoller(threading.Thread):
                     if type(msg) == pynmea2.types.talker.GGA:
                         lat = msg.latitude
                         lon = msg.longitude
-                        gotUpdate = True
-
-                    elif type(msg) == pynmea2.types.talker.HDT:
-                        orientation = msg.heading
+                        altitude = msg.altitude
                         gotUpdate = True
 
             except pynmea2.ParseError as e:
@@ -98,10 +96,36 @@ class GpsPoller(threading.Thread):
 
             if gotUpdate:
                 timestamp = datetime.now().replace(microsecond=0).isoformat()
-                self.latest = '{} , {} , {}'.format(timestamp, lat, lon)
+                self.latest = '{}, {}, {}, {}'.format(timestamp, lat, lon, altitude)
                 gotUpdate = False
             
     
+class MouseClickRecorder(PyMouseEvent):
+    def __init__(self, ip, port, sqm):
+        PyMouseEvent.__init__(self)
+        self.gps = GpsPoller(ip, port)
+        self.sqm_reader = SqmReader(sqm)
+        self.gps.start()
+
+    def click(self, x, y, button, press):
+        '''Print Fibonacci numbers when the left click is pressed.'''
+        if button == 1:
+            if press:
+                captured = False
+                while not captured:
+                    if self.gps.latest is not '':
+                        sqm = self.sqm_reader.read()
+                        print('{},   {}'.format(self.gps.latest, sqm))
+                        log.info('{}, {}'.format(self.gps.latest, sqm))
+                        self.gps.latest = ''
+                        captured = True
+                    time.sleep(1) 
+
+    def stop(self):
+        self.sqm_reader.close()
+        self.gps.runnable = False
+        self.gps.join()
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -116,23 +140,8 @@ def main():
         sys.exit(1)
 
     if args.ip:
-        t = GpsPoller(args.ip, args.port)
-        sqm_reader = SqmReader(args.sqm)
-        try:
-            t.start()
-            while True:
-                if t.latest is not '':
-                    sqm = sqm_reader.read()
-                    print('{} ,{}'.format(t.latest, sqm))
-                    log.info('{} ,{}'.format(t.latest, sqm))
-                    t.latest = ''
-                    time.sleep(5) 
-        
-        except (KeyboardInterrupt, SystemExit): 
-            print('exiting')
-            sqm_reader.close()
-            t.runnable = False
-            t.join()
-
+        c = MouseClickRecorder(args.ip, args.port, args.sqm)
+        c.run()
+       
 if __name__ == "__main__":
     main()
